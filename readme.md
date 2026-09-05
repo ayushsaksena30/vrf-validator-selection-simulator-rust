@@ -6,4 +6,4 @@ Simulation- Representation of something that could exist in real life.
 
 What do we need to create this simulation?
 1. Node- One system in a distributed environment that has identity, keypair and flag.
-2. 
+2. VRF Output- A pseudorandom value computed per node, per round, using that node's secret key and the round number.

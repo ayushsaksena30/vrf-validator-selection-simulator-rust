@@ -1,19 +1,20 @@
 mod node;
 
-use node::{Node, Keypair};
+use ed25519_dalek::SigningKey;
+use rand::rngs::OsRng;
+use node::{Node};
+use hex::encode;
 
 fn main() {
+
+    let mut rng= OsRng{};
     for n in 1..=10{
-        let key= Keypair{
-            public_key: 0,
-            private_key: 0,
-        };
         let node = Node{
-            id: n,
-            keypair: key,
+            id: n as u32,
+            signing_key: SigningKey::generate(&mut rng),
             is_malicious: false,
         };
 
-        println!("Node id- {}",node.id);
+        println!("Node id- {}, Public Key- {}",node.id, encode(node.signing_key.verifying_key().to_bytes()));
     }
 }
