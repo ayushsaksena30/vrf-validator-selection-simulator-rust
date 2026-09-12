@@ -4,6 +4,7 @@ use std::println;
 
 use ed25519_dalek::SigningKey;
 use rand::rngs::OsRng;
+use rand::seq::SliceRandom;
 use node::{Node};
 use hex::encode;
 use hmac::{Hmac, KeyInit, Mac};
@@ -16,11 +17,17 @@ fn main() {
 
     let mut rng= OsRng{};
     let mut nodes = Vec::new();
-    for n in 1..=10{
+
+    let mut node_index: Vec<u32> = (1..=20).collect();
+    node_index.shuffle(&mut rng);
+
+    let malicious_nodes: Vec<u32> = node_index.iter().take(6).cloned().collect();
+
+    for n in 1..=20{
         let node = Node{
             id: n as u32,
             signing_key: SigningKey::generate(&mut rng),
-            is_malicious: false,
+            is_malicious: malicious_nodes.iter().any(|x| x == &n),
         };
 
         println!("Node id- {}, Public Key- {}",
@@ -28,19 +35,34 @@ fn main() {
         nodes.push(node);
     }
 
-    let mut validators = Vec::new();
-    for node in nodes.iter() {
-       let vrf_output = compute_vrf(&node, 1);
-        let is_validator = validator_selection(vrf_output);
-        println!("Node id- {}, VRF- {}, Is Validator- {}",
-            node.id, vrf_output, is_validator);
+    let mut number_of_times_malicious_validator=0;
 
-        if is_validator {
-            validators.push(node.id);
+    for round in 1..=1000{
+
+        let mut validators = Vec::new();
+
+        for node in nodes.iter() {
+            let vrf_output = compute_vrf(&node, round);
+            let is_validator = validator_selection(vrf_output);
+            // println!("Node id- {}, VRF- {}, Is Validator- {}",
+                // node.id, vrf_output, is_validator);
+
+            if is_validator {
+                validators.push(node.id);
+            }
+        }
+
+        let malicious_validators = validators.iter().any(|node| malicious_nodes.contains(node));
+    
+        // println!("Validators for round 1: {:?}", validators);
+        // println!("Malicious Validators for round 1: {:?}", malicious_validators);
+        if(malicious_validators){
+            number_of_times_malicious_validator+=1;
         }
     }
 
-    println!("Validators for round 1: {:?}", validators);
+    println!("Number of times malicious validator was selected: {}", number_of_times_malicious_validator);
+    println!("Probability of malicious node selected as validator: {}", number_of_times_malicious_validator as f64 / 1000.0);
 }
 
 fn compute_vrf(node: &Node, round: u32) -> u64{
